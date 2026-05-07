@@ -1,6 +1,17 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
+type UserRole =
+  | 'superadmin'
+  | 'admin'
+  | 'committee'
+  | 'resident'
+  | 'concierge'
+
+type ProfileRole = {
+  role: UserRole
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient()
 
@@ -12,13 +23,13 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
-    .single()
+    .maybeSingle<ProfileRole>()
 
-  if (!profile) {
+  if (error || !profile) {
     redirect('/login')
   }
 
