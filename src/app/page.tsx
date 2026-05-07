@@ -7,7 +7,9 @@ export default function HomePage() {
       {/* NAVBAR */}
       <header className="relative z-10">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6 lg:px-8">
-          <div className="text-2xl font-bold tracking-tight">DOMMO</div>
+          <div className="text-2xl font-bold tracking-tight">
+            DOMMO
+          </div>
 
           <nav className="hidden gap-8 text-sm text-gray-300 md:flex">
             <a href="#" className="hover:text-white">
@@ -27,9 +29,12 @@ export default function HomePage() {
             </a>
           </nav>
 
-          <button className="rounded-xl border border-white/10 bg-white/5 px-5 py-2 text-sm transition hover:bg-white/10">
+          <a
+            href="/login"
+            className="rounded-xl border border-white/10 bg-white/5 px-5 py-2 text-sm transition hover:bg-white/10"
+          >
             Ingresar
-          </button>
+          </a>
         </div>
       </header>
 
@@ -59,9 +64,12 @@ export default function HomePage() {
                 Solicitar demo
               </button>
 
-              <button className="rounded-2xl border border-white/10 bg-white/5 px-7 py-4 font-semibold transition hover:bg-white/10">
+              <a
+                href="/login"
+                className="rounded-2xl border border-white/10 bg-white/5 px-7 py-4 font-semibold transition hover:bg-white/10"
+              >
                 Ver plataforma
-              </button>
+              </a>
             </div>
 
             {/* METRICS */}
