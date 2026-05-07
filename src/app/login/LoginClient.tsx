@@ -1,10 +1,11 @@
 'use client'
 
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 export default function LoginClient() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirect') || '/dashboard'
 
@@ -21,20 +22,25 @@ export default function LoginClient() {
     setIsLoading(true)
     setErrorMessage('')
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
       password,
     })
 
     if (error) {
-      setErrorMessage(
-        'No pudimos iniciar sesión. Revisa el correo y la contraseña.'
-      )
+      setErrorMessage(`Error Supabase: ${error.message}`)
       setIsLoading(false)
       return
     }
 
-    window.location.href = redirectTo
+    if (!data.session) {
+      setErrorMessage('No se creó sesión. Revisa configuración de Supabase Auth.')
+      setIsLoading(false)
+      return
+    }
+
+    router.refresh()
+    router.push(redirectTo)
   }
 
   return (
@@ -114,17 +120,6 @@ export default function LoginClient() {
                 </div>
               )}
 
-              <div className="flex items-center justify-between text-sm">
-                <label className="flex items-center gap-2 text-gray-400">
-                  <input type="checkbox" className="h-4 w-4 accent-blue-500" />
-                  Recordarme
-                </label>
-
-                <a href="#" className="text-blue-400 hover:text-blue-300">
-                  Recuperar contraseña
-                </a>
-              </div>
-
               <button
                 type="submit"
                 disabled={isLoading}
@@ -135,8 +130,8 @@ export default function LoginClient() {
             </form>
 
             <div className="mt-8 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-gray-400">
-              Para ingresar, el usuario debe existir en Supabase Authentication,
-              no solo en una tabla de la base de datos.
+              Usuario esperado: pablo@dommo.cl debe existir en Supabase
+              Authentication y estar confirmado.
             </div>
           </div>
         </div>
