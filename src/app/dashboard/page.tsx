@@ -11,16 +11,18 @@ export default async function DashboardPage() {
     error: userError,
   } = await supabase.auth.getUser()
 
-  if (userError || !user) {
+  if (userError || !user || !user.email) {
     redirect('/login')
   }
 
   const adminSupabase = await createAdminClient()
 
+  const normalizedEmail = user.email.trim().toLowerCase()
+
   const { data: profile, error: profileError } = await adminSupabase
     .from('profiles')
     .select('id, email, full_name, role, building_id')
-    .eq('id', user.id)
+    .eq('email', normalizedEmail)
     .maybeSingle()
 
   if (profileError || !profile) {
@@ -37,17 +39,15 @@ export default async function DashboardPage() {
           </p>
 
           <div className="mt-6 rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-gray-300">
-            <p>
-              Usuario detectado:
-            </p>
+            <p>Usuario detectado:</p>
 
             <p className="mt-2 font-mono">
-              {user.email}
+              {normalizedEmail}
             </p>
 
             <p className="mt-4">
-              Ejecuta nuevamente el script SQL para crear el perfil de este
-              usuario.
+              Debe existir un registro en <strong>public.profiles</strong> con
+              este mismo email.
             </p>
           </div>
         </div>
