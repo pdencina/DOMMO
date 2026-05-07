@@ -7,7 +7,10 @@ import { createAdminClient, createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
-export default async function OnboardingCommunityPage() {
+export default async function OnboardingCommunityPage({ searchParams }) {
+  const params = await searchParams
+  const errorMessage = params?.error ? decodeURIComponent(params.error) : ''
+
   const supabase = await createClient()
 
   const {
@@ -34,7 +37,6 @@ export default async function OnboardingCommunityPage() {
     'use server'
 
     const adminSupabase = await createAdminClient()
-
     const buildingId = randomUUID()
 
     const communityName = String(formData.get('community_name') || '').trim()
@@ -55,15 +57,8 @@ export default async function OnboardingCommunityPage() {
       .toLowerCase()
     const adminPassword = String(formData.get('admin_password') || '').trim()
 
-    if (
-      !communityName ||
-      !slug ||
-      !city ||
-      !adminName ||
-      !adminEmail ||
-      !adminPassword
-    ) {
-      redirect('/dashboard/superadmin/onboarding?error=missing_fields')
+    if (!communityName || !slug || !city || !adminName || !adminEmail || !adminPassword) {
+      redirect('/dashboard/superadmin/onboarding?error=Faltan campos obligatorios')
     }
 
     const { error: buildingError } = await adminSupabase
@@ -80,7 +75,11 @@ export default async function OnboardingCommunityPage() {
       })
 
     if (buildingError) {
-      redirect('/dashboard/superadmin/onboarding?error=building_failed')
+      redirect(
+        `/dashboard/superadmin/onboarding?error=${encodeURIComponent(
+          `Error creando comunidad: ${buildingError.message}`
+        )}`
+      )
     }
 
     const { data: authUser, error: authError } =
@@ -96,7 +95,13 @@ export default async function OnboardingCommunityPage() {
       })
 
     if (authError || !authUser?.user) {
-      redirect('/dashboard/superadmin/onboarding?error=user_failed')
+      await adminSupabase.from('buildings').delete().eq('id', buildingId)
+
+      redirect(
+        `/dashboard/superadmin/onboarding?error=${encodeURIComponent(
+          `Error creando usuario admin: ${authError?.message || 'No se creó el usuario'}`
+        )}`
+      )
     }
 
     const { error: profileError } = await adminSupabase
@@ -110,7 +115,14 @@ export default async function OnboardingCommunityPage() {
       })
 
     if (profileError) {
-      redirect('/dashboard/superadmin/onboarding?error=profile_failed')
+      await adminSupabase.auth.admin.deleteUser(authUser.user.id)
+      await adminSupabase.from('buildings').delete().eq('id', buildingId)
+
+      redirect(
+        `/dashboard/superadmin/onboarding?error=${encodeURIComponent(
+          `Error creando perfil admin: ${profileError.message}`
+        )}`
+      )
     }
 
     redirect('/dashboard/superadmin')
@@ -122,9 +134,7 @@ export default async function OnboardingCommunityPage() {
         <div className="flex items-center justify-between px-8 py-5">
           <div>
             <p className="text-sm text-gray-400">Super Admin DOMMO</p>
-            <h1 className="mt-1 text-2xl font-bold">
-              Onboarding de condominio
-            </h1>
+            <h1 className="mt-1 text-2xl font-bold">Onboarding de condominio</h1>
           </div>
 
           <Link
@@ -139,157 +149,103 @@ export default async function OnboardingCommunityPage() {
       <section className="p-8">
         <div className="mx-auto max-w-4xl rounded-3xl border border-white/10 bg-white/[0.03] p-8">
           <div className="mb-10">
-            <h2 className="text-4xl font-bold">
-              Crear condominio completo
-            </h2>
+            <h2 className="text-4xl font-bold">Crear condominio completo</h2>
 
             <p className="mt-3 text-gray-400">
-              Crea la comunidad cliente y su primer administrador para que pueda
-              operar su propio panel dentro de DOMMO.
+              Crea la comunidad cliente y su primer administrador.
             </p>
           </div>
 
+          {errorMessage && (
+            <div className="mb-8 rounded-2xl border border-red-500/20 bg-red-500/10 p-5 text-red-200">
+              {errorMessage}
+            </div>
+          )}
+
           <form action={createFullCommunity} className="grid gap-8">
             <div className="rounded-3xl border border-white/10 bg-black/20 p-6">
-              <h3 className="mb-6 text-2xl font-semibold">
-                Datos del condominio
-              </h3>
+              <h3 className="mb-6 text-2xl font-semibold">Datos del condominio</h3>
 
               <div className="grid gap-5">
-                <div>
-                  <label className="mb-2 block text-sm text-gray-300">
-                    Nombre del condominio
-                  </label>
+                <input
+                  name="community_name"
+                  required
+                  placeholder="Nombre del condominio"
+                  className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-white outline-none focus:border-blue-500"
+                />
 
-                  <input
-                    name="community_name"
-                    required
-                    placeholder="Edificio Los Leones"
-                    className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-white outline-none focus:border-blue-500"
-                  />
-                </div>
+                <input
+                  name="slug"
+                  required
+                  placeholder="slug-ejemplo"
+                  className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-white outline-none focus:border-blue-500"
+                />
 
-                <div>
-                  <label className="mb-2 block text-sm text-gray-300">
-                    Slug / identificador
-                  </label>
-
-                  <input
-                    name="slug"
-                    required
-                    placeholder="edificio-los-leones"
-                    className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-white outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm text-gray-300">
-                    Dirección
-                  </label>
-
-                  <input
-                    name="address"
-                    placeholder="Av. Providencia 1234"
-                    className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-white outline-none focus:border-blue-500"
-                  />
-                </div>
+                <input
+                  name="address"
+                  placeholder="Dirección"
+                  className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-white outline-none focus:border-blue-500"
+                />
 
                 <div className="grid gap-5 md:grid-cols-3">
-                  <div>
-                    <label className="mb-2 block text-sm text-gray-300">
-                      Ciudad
-                    </label>
+                  <input
+                    name="city"
+                    required
+                    placeholder="Ciudad"
+                    className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-white outline-none focus:border-blue-500"
+                  />
 
-                    <input
-                      name="city"
-                      required
-                      placeholder="Santiago"
-                      className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-white outline-none focus:border-blue-500"
-                    />
-                  </div>
+                  <input
+                    name="total_units"
+                    type="number"
+                    min="0"
+                    defaultValue="0"
+                    placeholder="Unidades"
+                    className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-white outline-none focus:border-blue-500"
+                  />
 
-                  <div>
-                    <label className="mb-2 block text-sm text-gray-300">
-                      Total unidades
-                    </label>
-
-                    <input
-                      name="total_units"
-                      type="number"
-                      min="0"
-                      defaultValue="0"
-                      className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-white outline-none focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm text-gray-300">
-                      Plan
-                    </label>
-
-                    <select
-                      name="plan"
-                      defaultValue="starter"
-                      className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-white outline-none focus:border-blue-500"
-                    >
-                      <option value="starter">Starter</option>
-                      <option value="growth">Growth</option>
-                      <option value="premium">Premium</option>
-                      <option value="enterprise">Enterprise</option>
-                    </select>
-                  </div>
+                  <select
+                    name="plan"
+                    defaultValue="starter"
+                    className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-white outline-none focus:border-blue-500"
+                  >
+                    <option value="starter">Starter</option>
+                    <option value="growth">Growth</option>
+                    <option value="premium">Premium</option>
+                    <option value="enterprise">Enterprise</option>
+                  </select>
                 </div>
               </div>
             </div>
 
             <div className="rounded-3xl border border-white/10 bg-black/20 p-6">
-              <h3 className="mb-6 text-2xl font-semibold">
-                Administrador del condominio
-              </h3>
+              <h3 className="mb-6 text-2xl font-semibold">Administrador del condominio</h3>
 
               <div className="grid gap-5">
-                <div>
-                  <label className="mb-2 block text-sm text-gray-300">
-                    Nombre administrador
-                  </label>
-
-                  <input
-                    name="admin_name"
-                    required
-                    placeholder="María González"
-                    className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-white outline-none focus:border-blue-500"
-                  />
-                </div>
+                <input
+                  name="admin_name"
+                  required
+                  placeholder="Nombre administrador"
+                  className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-white outline-none focus:border-blue-500"
+                />
 
                 <div className="grid gap-5 md:grid-cols-2">
-                  <div>
-                    <label className="mb-2 block text-sm text-gray-300">
-                      Correo administrador
-                    </label>
+                  <input
+                    name="admin_email"
+                    type="email"
+                    required
+                    placeholder="admin@condominio.cl"
+                    className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-white outline-none focus:border-blue-500"
+                  />
 
-                    <input
-                      name="admin_email"
-                      type="email"
-                      required
-                      placeholder="admin@condominio.cl"
-                      className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-white outline-none focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm text-gray-300">
-                      Contraseña inicial
-                    </label>
-
-                    <input
-                      name="admin_password"
-                      type="password"
-                      required
-                      minLength={6}
-                      placeholder="Mínimo 6 caracteres"
-                      className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-white outline-none focus:border-blue-500"
-                    />
-                  </div>
+                  <input
+                    name="admin_password"
+                    type="password"
+                    required
+                    minLength={6}
+                    placeholder="Contraseña inicial"
+                    className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-white outline-none focus:border-blue-500"
+                  />
                 </div>
               </div>
             </div>
