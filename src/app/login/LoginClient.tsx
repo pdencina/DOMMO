@@ -1,20 +1,40 @@
 'use client'
 
+import { useSearchParams } from 'next/navigation'
 import { useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 export default function LoginClient() {
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirect') || '/dashboard'
+
+  const supabase = createClient()
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setIsLoading(true)
 
-    setTimeout(() => {
+    setIsLoading(true)
+    setErrorMessage('')
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error) {
+      setErrorMessage(
+        'No pudimos iniciar sesión. Revisa el correo y la contraseña.'
+      )
       setIsLoading(false)
-      window.location.href = '/dashboard'
-    }, 700)
+      return
+    }
+
+    window.location.href = redirectTo
   }
 
   return (
@@ -68,8 +88,8 @@ export default function LoginClient() {
                   required
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder="admin@dommo.cl"
-                  className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-white outline-none transition placeholder:text-gray-600 focus:border-blue-500"
+                  placeholder="pablo@dommo.cl"
+                  className="w-full rounded-2xl border border-white/10 bg-white px-4 py-4 text-black outline-none transition placeholder:text-gray-500 focus:border-blue-500"
                 />
               </div>
 
@@ -84,9 +104,15 @@ export default function LoginClient() {
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-white outline-none transition placeholder:text-gray-600 focus:border-blue-500"
+                  className="w-full rounded-2xl border border-white/10 bg-white px-4 py-4 text-black outline-none transition placeholder:text-gray-500 focus:border-blue-500"
                 />
               </div>
+
+              {errorMessage && (
+                <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
+                  {errorMessage}
+                </div>
+              )}
 
               <div className="flex items-center justify-between text-sm">
                 <label className="flex items-center gap-2 text-gray-400">
@@ -109,8 +135,8 @@ export default function LoginClient() {
             </form>
 
             <div className="mt-8 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-gray-400">
-              Demo rápida: puedes escribir cualquier correo y contraseña para
-              entrar al dashboard.
+              Para ingresar, el usuario debe existir en Supabase Authentication,
+              no solo en una tabla de la base de datos.
             </div>
           </div>
         </div>
