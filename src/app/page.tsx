@@ -15,6 +15,10 @@ export default function LandingPage() {
             <a href="#precios" className="hover:text-white transition-colors cursor-pointer">Precios</a>
           </div>
           <div className="flex items-center gap-3">
+            <Link href="/pagar"
+              className="text-sm text-[#5DCAA5] hover:text-white border border-[#0F6E56]/40 hover:border-[#0F6E56] px-4 py-2 rounded-xl transition-all">
+              💳 Pago rápido
+            </Link>
             <Link href="/login" className="text-sm text-gray-300 hover:text-white transition-colors px-4 py-2">
               Iniciar sesión
             </Link>
@@ -57,11 +61,10 @@ export default function LandingPage() {
                   Comenzar gratis — 30 días
                   <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                 </Link>
-                <a href="#demo"
-                  className="inline-flex items-center justify-center gap-2 border border-white/10 hover:border-white/20 text-gray-300 hover:text-white font-medium px-8 py-4 rounded-2xl transition-all text-base">
-                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M10 8l6 4-6 4V8z"/></svg>
-                  Ver demo
-                </a>
+                <Link href="/pagar"
+                  className="inline-flex items-center justify-center gap-2 border border-[#0F6E56]/40 hover:border-[#0F6E56] text-[#5DCAA5] hover:text-white font-medium px-8 py-4 rounded-2xl transition-all text-base">
+                  💳 Pagar gasto común
+                </Link>
               </div>
 
               {/* Social proof */}
