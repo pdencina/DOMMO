@@ -3,13 +3,16 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { LogOut } from 'lucide-react'
+import { LogOut, Loader2 } from 'lucide-react'
+import { useState } from 'react'
 
 export default function LogoutButton({ variant = 'dark' }: { variant?: 'dark' | 'light' }) {
-  const router = useRouter()
+  const [loading, setLoading] = useState(false)
+  const router  = useRouter()
   const supabase = createClient()
 
   async function handleLogout() {
+    setLoading(true)
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
@@ -18,14 +21,18 @@ export default function LogoutButton({ variant = 'dark' }: { variant?: 'dark' | 
   return (
     <button
       onClick={handleLogout}
-      className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition ${
+      disabled={loading}
+      className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all disabled:opacity-50 ${
         variant === 'light'
-          ? 'text-white/70 hover:text-white hover:bg-white/10'
-          : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+          ? 'text-white/70 hover:text-white hover:bg-white/15'
+          : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
       }`}
     >
-      <LogOut size={13} />
-      Salir
+      {loading
+        ? <Loader2 size={13} className="animate-spin" />
+        : <LogOut size={13} />
+      }
+      {loading ? 'Saliendo...' : 'Salir'}
     </button>
   )
 }

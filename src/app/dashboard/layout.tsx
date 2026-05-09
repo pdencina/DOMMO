@@ -15,21 +15,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .eq('email', user.email.trim().toLowerCase())
     .maybeSingle()
 
-  // Roles que NO usan sidebar (tienen su propio portal)
-  const noSidebarRoles = ['resident', 'concierge']
-  if (profile && noSidebarRoles.includes(profile.role)) {
-    return (
-      <div className="min-h-screen bg-[#F8F7F4]">
-        {children}
-      </div>
-    )
+  // Sin sidebar: portales propios
+  const noSidebar = ['resident', 'concierge']
+  if (profile && noSidebar.includes(profile.role)) {
+    return <div className="min-h-screen dashboard-bg">{children}</div>
   }
 
-  // Roles con sidebar: superadmin, admin, committee
   return (
-    <div className="flex h-screen bg-[#F8F7F4] overflow-hidden">
+    <div className="flex h-screen dashboard-bg overflow-hidden">
       <Sidebar profile={profile} />
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto animate-fade-in">
         {children}
       </main>
     </div>
