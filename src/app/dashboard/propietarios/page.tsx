@@ -1,7 +1,7 @@
 // @ts-nocheck
 export const dynamic = 'force-dynamic'
 
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient, createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { initials } from '@/lib/utils'
 import { UserPlus, Search } from 'lucide-react'
@@ -14,13 +14,14 @@ export default async function PropietariosPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await (supabase as any)
-    .from('profiles').select('building_id').eq('id', user.id).single()
+  const adminSupabase = await createAdminClient()
+  const { data: profile } = await adminSupabase
+    .from('profiles').select('building_id').eq('email', user.email.trim().toLowerCase()).maybeSingle()
   const buildingId = profile?.building_id
-  if (!buildingId) redirect('/login')
+  if (!buildingId) redirect('/dashboard/admin')
 
   // Unidades con propietarios y último pago
-  const { data: units } = await supabase
+  const { data: units } = await adminSupabase
     .from('units')
     .select(`
       *,
