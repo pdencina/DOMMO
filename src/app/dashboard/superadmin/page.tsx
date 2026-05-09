@@ -7,7 +7,7 @@ import { createAdminClient, createClient } from '@/lib/supabase/server'
 import { formatCLP } from '@/lib/utils'
 import {
   Building2, Plus, Users, TrendingUp,
-  CheckCircle2, Clock, XCircle, LogOut, Shield
+  CheckCircle2, Clock, XCircle, LogOut, Shield, Banknote
 } from 'lucide-react'
 import LogoutButton from '@/components/dashboard/LogoutButton'
 
@@ -82,10 +82,16 @@ export default async function SuperAdminPage() {
             <h1 className="text-2xl font-bold">Panel de plataforma</h1>
             <p className="text-sm text-gray-500 mt-1">Gestiona todos los edificios registrados en DOMMO.</p>
           </div>
+          <div className="flex gap-2">
+          <Link href="/dashboard/superadmin/liquidaciones"
+            className="flex items-center gap-2 border border-white/10 hover:border-white/20 text-gray-300 font-medium px-5 py-3 rounded-xl transition-all text-sm">
+            <Banknote size={16} /> Liquidaciones
+          </Link>
           <Link href="/dashboard/superadmin/onboarding"
             className="flex items-center gap-2 bg-[#0F6E56] hover:bg-[#0a5540] text-white font-semibold px-5 py-3 rounded-xl transition-all hover:scale-105 active:scale-95 text-sm">
             <Plus size={16} /> Nuevo edificio
           </Link>
+          </div>
         </div>
 
         {/* KPIs */}
