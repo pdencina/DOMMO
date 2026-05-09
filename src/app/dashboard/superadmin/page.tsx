@@ -1,216 +1,192 @@
 // @ts-nocheck
+export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
+import { formatCLP } from '@/lib/utils'
+import {
+  Building2, Plus, Users, TrendingUp,
+  CheckCircle2, Clock, XCircle, LogOut, Shield
+} from 'lucide-react'
+import LogoutButton from '@/components/dashboard/LogoutButton'
 
-export const dynamic = 'force-dynamic'
+export const metadata = { title: 'Super Admin | DOMMO' }
 
-export default async function SuperAdminDashboard() {
+export default async function SuperAdminPage() {
   const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
   const adminSupabase = await createAdminClient()
-
   const { data: profile } = await adminSupabase
-    .from('profiles')
-    .select('role, full_name, email')
-    .eq('email', user.email)
-    .maybeSingle()
+    .from('profiles').select('role, full_name').eq('email', user.email).maybeSingle()
 
-  if (!profile || profile.role !== 'superadmin') {
-    redirect('/dashboard')
-  }
+  if (!profile || profile.role !== 'superadmin') redirect('/dashboard')
 
-  const { data: communities } = await adminSupabase
+  const { data: buildings } = await adminSupabase
     .from('buildings')
-    .select('id, name, plan, status, total_units, city')
+    .select('*, profiles(id)')
     .order('created_at', { ascending: false })
 
-  const totalCommunities = communities?.length || 0
-  const activeCommunities =
-    communities?.filter((community) => community.status === 'active').length || 0
+  const total   = buildings?.length ?? 0
+  const active  = buildings?.filter(b => b.status === 'active').length ?? 0
+  const trial   = buildings?.filter(b => b.status === 'trial').length ?? 0
+  const totalUnits = buildings?.reduce((s, b) => s + (b.total_units ?? 0), 0) ?? 0
+
+  // MRR estimado
+  const planPrices = { basico: 35000, pro: 59000, premium: 99000 }
+  const mrr = buildings?.filter(b => b.status === 'active')
+    .reduce((s, b) => s + (planPrices[b.plan] ?? 59000), 0) ?? 0
+
+  const planConfig = {
+    basico:  { label: 'Básico',  color: 'bg-gray-500/10 text-gray-400 border-gray-500/20' },
+    pro:     { label: 'Pro',     color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
+    premium: { label: 'Premium', color: 'bg-purple-500/10 text-purple-400 border-purple-500/20' },
+  }
+
+  const statusConfig = {
+    active:    { label: 'Activo',     icon: CheckCircle2, color: 'text-emerald-400' },
+    trial:     { label: 'Trial',      icon: Clock,        color: 'text-amber-400' },
+    suspended: { label: 'Suspendido', icon: XCircle,      color: 'text-red-400' },
+    cancelled: { label: 'Cancelado',  icon: XCircle,      color: 'text-gray-500' },
+  }
 
   return (
-    <main className="min-h-screen bg-[#050816] text-white">
-      <header className="border-b border-white/5 bg-black/20 backdrop-blur">
-        <div className="flex items-center justify-between px-8 py-5">
+    <div className="min-h-screen bg-[#050C1A] text-white">
+
+      {/* Header */}
+      <div className="border-b border-white/5 bg-black/20 backdrop-blur-md px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+            <Shield size={15} className="text-purple-400" />
+          </div>
           <div>
-            <p className="text-sm text-gray-400">Plataforma</p>
-            <h1 className="mt-1 text-2xl font-bold">DOMMO Super Admin</h1>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm text-blue-300">
-              SUPER ADMIN
-            </div>
-
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-500 font-semibold">
-              P
-            </div>
+            <p className="text-xs text-gray-500">DOMMO Platform</p>
+            <p className="text-sm font-bold">Super Admin</p>
           </div>
         </div>
-      </header>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-gray-500">
+            {profile.full_name}
+          </span>
+          <LogoutButton variant="light" />
+        </div>
+      </div>
 
-      <section className="p-8">
-        <div className="mb-10">
-          <h2 className="text-5xl font-bold">Bienvenido Pablo 👋</h2>
+      <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
 
-          <p className="mt-4 text-lg text-gray-400">
-            Administra toda la plataforma DOMMO desde un solo lugar.
-          </p>
+        {/* Hero + CTA */}
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Panel de plataforma</h1>
+            <p className="text-sm text-gray-500 mt-1">Gestiona todos los edificios registrados en DOMMO.</p>
+          </div>
+          <Link href="/dashboard/superadmin/onboarding"
+            className="flex items-center gap-2 bg-[#0F6E56] hover:bg-[#0a5540] text-white font-semibold px-5 py-3 rounded-xl transition-all hover:scale-105 active:scale-95 text-sm">
+            <Plus size={16} /> Nuevo edificio
+          </Link>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-          <MetricCard
-            title="Comunidades"
-            value={String(totalCommunities)}
-            subtitle="Total registradas"
-          />
-
-          <MetricCard
-            title="Activas"
-            value={String(activeCommunities)}
-            subtitle="Clientes operativos"
-          />
-
-          <MetricCard
-            title="MRR"
-            value="$0"
-            subtitle="Ingresos mensuales"
-          />
-
-          <MetricCard
-            title="Estado"
-            value="100%"
-            subtitle="Plataforma operativa"
-          />
+        {/* KPIs */}
+        <div className="grid grid-cols-4 gap-4">
+          {[
+            { label: 'Edificios totales',  value: total,               sub: `${trial} en trial`,  color: 'text-white' },
+            { label: 'Edificios activos',  value: active,              sub: 'pagando suscripción', color: 'text-emerald-400' },
+            { label: 'Unidades totales',   value: totalUnits,          sub: 'en toda la plataforma', color: 'text-blue-400' },
+            { label: 'MRR estimado',       value: formatCLP(mrr),      sub: 'ingresos mensuales',  color: 'text-purple-400' },
+          ].map(({ label, value, sub, color }) => (
+            <div key={label} className="rounded-2xl border border-white/5 bg-white/[0.03] p-5">
+              <p className="text-xs text-gray-500 mb-2">{label}</p>
+              <p className={`text-2xl font-bold ${color}`}>{value}</p>
+              <p className="text-xs text-gray-600 mt-1">{sub}</p>
+            </div>
+          ))}
         </div>
 
-        <div className="mt-8 grid gap-6 xl:grid-cols-3">
-          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 xl:col-span-2">
-            <div className="mb-6 flex items-center justify-between">
-              <div>
-                <h3 className="text-2xl font-semibold">
-                  Comunidades registradas
-                </h3>
+        {/* Lista edificios */}
+        <div className="rounded-2xl border border-white/5 bg-white/[0.03] overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+            <h2 className="text-base font-bold">Edificios registrados</h2>
+            <span className="text-xs text-gray-500 bg-white/5 px-3 py-1 rounded-full">{total} total</span>
+          </div>
 
-                <p className="mt-2 text-gray-400">
-                  Clientes activos dentro de DOMMO.
-                </p>
-              </div>
+          {/* Table header */}
+          <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-6 py-2.5 border-b border-white/5 text-[10px] font-semibold text-gray-600 uppercase tracking-wider">
+            <div>Edificio</div>
+            <div>Plan</div>
+            <div>Unidades</div>
+            <div>Estado</div>
+            <div>Acción</div>
+          </div>
 
-              <Link
-                href="/dashboard/superadmin/comunidades/nueva"
-                className="rounded-2xl bg-blue-500 px-5 py-3 font-medium hover:bg-blue-400"
-              >
-                Nueva comunidad
+          {!buildings || buildings.length === 0 ? (
+            <div className="py-16 text-center">
+              <Building2 size={32} className="text-gray-700 mx-auto mb-4" />
+              <p className="text-gray-500 mb-2">No hay edificios registrados aún</p>
+              <Link href="/dashboard/superadmin/onboarding"
+                className="text-sm text-[#5DCAA5] hover:underline">
+                + Registrar el primero
               </Link>
             </div>
+          ) : (
+            <div className="divide-y divide-white/5">
+              {buildings.map(b => {
+                const plan   = planConfig[b.plan]   ?? planConfig.pro
+                const status = statusConfig[b.status] ?? statusConfig.active
+                const StatusIcon = status.icon
+                const admins = b.profiles?.length ?? 0
 
-            <div className="space-y-4">
-              {communities?.map((community) => (
-                <CommunityCard
-                  key={community.id}
-                  name={community.name}
-                  plan={community.plan}
-                  status={community.status}
-                  units={`${community.total_units} unidades`}
-                  city={community.city}
-                />
-              ))}
+                return (
+                  <div key={b.id}
+                    className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center px-6 py-4 hover:bg-white/[0.02] transition-colors group">
+
+                    {/* Info edificio */}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-xl bg-[#0F6E56]/20 flex items-center justify-center flex-shrink-0">
+                        <Building2 size={16} className="text-[#5DCAA5]" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-white truncate">{b.name}</p>
+                        <p className="text-[11px] text-gray-600 font-mono">{b.slug}.dommo.app · {b.city}</p>
+                      </div>
+                    </div>
+
+                    {/* Plan */}
+                    <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border ${plan.color}`}>
+                      {plan.label}
+                    </span>
+
+                    {/* Unidades */}
+                    <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                      <Users size={12} />
+                      {b.total_units ?? 0}
+                    </div>
+
+                    {/* Status */}
+                    <div className={`flex items-center gap-1.5 text-xs font-medium ${status.color}`}>
+                      <StatusIcon size={12} />
+                      {status.label}
+                    </div>
+
+                    {/* Acción */}
+                    <Link href={`/dashboard/superadmin/onboarding?edit=${b.id}`}
+                      className="text-[11px] text-gray-600 hover:text-[#5DCAA5] transition-colors opacity-0 group-hover:opacity-100">
+                      Ver →
+                    </Link>
+                  </div>
+                )
+              })}
             </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
-              <h3 className="text-xl font-semibold">Acciones rápidas</h3>
-
-              <div className="mt-6 grid gap-3">
-                <QuickLink
-                  href="/dashboard/superadmin/comunidades/nueva"
-                  text="Crear comunidad"
-                />
-                <QuickButton text="Crear administrador" />
-                <QuickButton text="Ver usuarios" />
-                <QuickButton text="Ver métricas" />
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
-              <h3 className="text-xl font-semibold">Estado sistema</h3>
-
-              <div className="mt-6 rounded-2xl border border-green-500/20 bg-green-500/10 p-5">
-                <p className="font-semibold text-green-300">
-                  Todos los servicios operativos
-                </p>
-
-                <p className="mt-2 text-sm text-green-400">
-                  API, Auth y DB funcionando correctamente.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
-  )
-}
-
-function MetricCard({ title, value, subtitle }) {
-  return (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
-      <p className="text-sm text-gray-400">{title}</p>
-      <div className="mt-4 text-4xl font-bold">{value}</div>
-      <p className="mt-3 text-sm text-gray-500">{subtitle}</p>
-    </div>
-  )
-}
-
-function CommunityCard({ name, plan, status, units, city }) {
-  return (
-    <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/20 p-5">
-      <div>
-        <h4 className="text-lg font-semibold">{name}</h4>
-
-        <p className="mt-2 text-sm text-gray-400">
-          {units} · {city}
-        </p>
-      </div>
-
-      <div className="text-right">
-        <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-sm text-blue-300">
-          {plan}
+          )}
         </div>
 
-        <p className="mt-2 text-sm text-gray-500">{status}</p>
+        {/* Footer info */}
+        <div className="flex items-center justify-between text-xs text-gray-700 pb-4">
+          <span>DOMMO Platform · v1.0</span>
+          <span>Estado: <span className="text-emerald-600">Operativo ✓</span></span>
+        </div>
       </div>
     </div>
-  )
-}
-
-function QuickLink({ href, text }) {
-  return (
-    <Link
-      href={href}
-      className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-left transition hover:bg-white/[0.05]"
-    >
-      {text}
-    </Link>
-  )
-}
-
-function QuickButton({ text }) {
-  return (
-    <button className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-left transition hover:bg-white/[0.05]">
-      {text}
-    </button>
   )
 }
